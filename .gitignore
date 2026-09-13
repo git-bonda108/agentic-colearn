@@ -1,0 +1,40 @@
+**/node_modules
+**/.next
+.next
+.cache
+
+# Secrets — never commit environment files (the original repo leaked a live
+# database credential this way; that credential must be rotated).
+.env
+**/.env
+.env.local
+**/.env.local
+!**/.env.example
+.build
+*.nfs*
+**/.yarn/
+!**/.yarn/patches
+!**/.yarn/plugins
+!**/.yarn/releases
+!**/.yarn/sdks
+!**/.yarn/versions
+!**/.yarn/cache
+**/.yarn/build-state.yml
+**/.yarn/install-state.gz
+dist
+target
+out
+.deploy
+.logs
+*.tsbuildinfo
+.DS_Store
+**/.DS_Store
+
+# local dev (iCloud-excluded dirs)
+node_modules.nosync/
+.next.nosync/
+.env
+.env.local
+
+.claude/
+.cursor/

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+<defs>
+<linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+<stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:1"/>
+<stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1"/>
+</linearGradient>
+</defs>
+<rect width="256" height="256" fill="#1a1a2e"/>
+<path d="M128 40 C100 40 80 60 70 80 C60 70 50 65 40 70 C30 75 28 90 35 105 C25 110 20 120 22 135 C24 150 35 160 50 162 C48 175 52 190 65 200 C75 208 90 210 105 205 C110 220 125 235 145 235 C165 235 180 220 185 205 C200 210 215 208 225 200 C238 190 242 175 240 162 C255 160 266 150 268 135 C270 120 265 110 255 105 C262 90 260 75 250 70 C240 65 230 70 220 80 C210 60 190 40 162 40 C150 40 138 42 128 40 Z" fill="url(#grad1)" stroke="#fff" stroke-width="3"/>
+<circle cx="128" cy="100" r="8" fill="#FFD700"/>
+<circle cx="90" cy="120" r="6" fill="#00D9FF"/>
+<circle cx="166" cy="120" r="6" fill="#00D9FF"/>
+<circle cx="110" cy="150" r="6" fill="#FF6B9D"/>
+<circle cx="146" cy="150" r="6" fill="#FF6B9D"/>
+<circle cx="128" cy="180" r="7" fill="#7FFF00"/>
+<line x1="128" y1="100" x2="90" y2="120" stroke="#fff" stroke-width="2" opacity="0.8"/>
+<line x1="128" y1="100" x2="166" y2="120" stroke="#fff" stroke-width="2" opacity="0.8"/>
+<line x1="90" y1="120" x2="110" y2="150" stroke="#fff" stroke-width="2" opacity="0.8"/>
+<line x1="166" y1="120" x2="146" y2="150" stroke="#fff" stroke-width="2" opacity="0.8"/>
+<line x1="110" y1="150" x2="128" y2="180" stroke="#fff" stroke-width="2" opacity="0.8"/>
+<line x1="146" y1="150" x2="128" y2="180" stroke="#fff" stroke-width="2" opacity="0.8"/>
+<line x1="90" y1="120" x2="146" y2="150" stroke="#fff" stroke-width="1.5" opacity="0.4"/>
+<line x1="166" y1="120" x2="110" y2="150" stroke="#fff" stroke-width="1.5" opacity="0.4"/>
+</svg>

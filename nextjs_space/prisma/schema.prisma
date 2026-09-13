@@ -1,0 +1,375 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ChatSession {
+  id        String        @id @default(cuid())
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  messages  Message[]
+  metrics   AgentMetric[]
+}
+
+model Message {
+  id            String      @id @default(cuid())
+  content       String      @db.Text
+  role          String
+  agentType     String?
+  modelUsed     String?
+  searchSources Json?
+  createdAt     DateTime    @default(now())
+  sessionId     String
+  session       ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+}
+
+model AgentMetric {
+  id                  String      @id @default(cuid())
+  agentType           String
+  questionsHandled    Int         @default(0)
+  averageResponseTime Float?
+  successfulHandoffs  Int         @default(0)
+  sessionId           String
+  session             ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt           DateTime    @default(now())
+
+  @@index([sessionId])
+  @@index([agentType])
+}
+
+model Note {
+  id         String      @id @default(cuid())
+  title      String
+  content    String      @db.Text
+  subject    String?
+  tags       String[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  concepts   Concept[]
+  flashcards Flashcard[]
+}
+
+model Concept {
+  id            String                @id @default(cuid())
+  name          String
+  description   String?               @db.Text
+  subject       String?
+  noteId        String?
+  note          Note?                 @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  createdAt     DateTime              @default(now())
+  relationsFrom ConceptRelationship[] @relation("ConceptFrom")
+  relationsTo   ConceptRelationship[] @relation("ConceptTo")
+
+  @@index([noteId])
+  @@index([subject])
+}
+
+model ConceptRelationship {
+  id               String   @id @default(cuid())
+  fromConceptId    String
+  toConceptId      String
+  relationshipType String
+  strength         Float    @default(1.0)
+  fromConcept      Concept  @relation("ConceptFrom", fields: [fromConceptId], references: [id], onDelete: Cascade)
+  toConcept        Concept  @relation("ConceptTo", fields: [toConceptId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+
+  @@index([fromConceptId])
+  @@index([toConceptId])
+}
+
+model Flashcard {
+  id         String            @id @default(cuid())
+  front      String            @db.Text
+  back       String            @db.Text
+  subject    String?
+  difficulty String            @default("medium")
+  noteId     String?
+  note       Note?             @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  createdAt  DateTime          @default(now())
+  reviews    FlashcardReview[]
+  // FSRS scheduler state (null = never reviewed under FSRS)
+  fsrsStability  Float?
+  fsrsDifficulty Float?
+  fsrsDue        DateTime?
+  fsrsLastReview DateTime?
+
+  @@index([noteId])
+  @@index([subject])
+  @@index([fsrsDue])
+}
+
+model FlashcardReview {
+  id           String    @id @default(cuid())
+  flashcardId  String
+  flashcard    Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
+  quality      Int
+  easeFactor   Float
+  interval     Int
+  repetitions  Int
+  nextReviewAt DateTime
+  reviewedAt   DateTime  @default(now())
+
+  @@index([flashcardId])
+  @@index([nextReviewAt])
+}
+
+model KnowledgePack {
+  id          String   @id @default(cuid())
+  title       String
+  subject     String
+  description String   @db.Text
+  content     Json
+  difficulty  String   @default("intermediate")
+  topics      String[]
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([subject])
+}
+
+model StudentProfile {
+  id               String             @id @default(cuid())
+  name             String
+  email            String?            @unique
+  avatar           String?
+  grade            String?
+  learningStyle    String             @default("visual")
+  // Ordered additional languages after English, e.g. ["hi","te"] or ["te","hi"]
+  preferredLanguages String[]         @default([])
+  interests        String[]
+  strengths        String[]
+  goals            String[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  classes          ClassEnrollment[]
+  progress         LearningProgress[]
+  questionAttempts QuestionAttempt[]
+  conceptMastery   ConceptMastery[]
+}
+
+model Class {
+  id          String            @id @default(cuid())
+  title       String
+  subject     String
+  description String            @db.Text
+  imageUrl    String?
+  difficulty  String            @default("intermediate")
+  topics      String[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  enrollments ClassEnrollment[]
+  modules     LearningModule[]
+
+  @@index([subject])
+}
+
+model ClassEnrollment {
+  id             String         @id @default(cuid())
+  studentId      String
+  classId        String
+  student        StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class          Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  enrolledAt     DateTime       @default(now())
+  completionRate Float          @default(0)
+
+  @@unique([studentId, classId])
+  @@index([studentId])
+  @@index([classId])
+}
+
+model LearningModule {
+  id         String   @id @default(cuid())
+  title      String
+  classId    String
+  class      Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  content    String   @db.Text
+  orderIndex Int
+  imageUrl   String?
+  resources  Json?
+  createdAt  DateTime @default(now())
+
+  @@index([classId])
+}
+
+model LearningProgress {
+  id          String         @id @default(cuid())
+  studentId   String
+  student     StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  itemType    String
+  itemId      String
+  status      String         @default("in_progress")
+  score       Float?
+  timeSpent   Int            @default(0)
+  completedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([studentId])
+  @@index([itemType, itemId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// CBSE Curriculum hierarchy: Grade → Subject → Chapter → LO
+// ─────────────────────────────────────────────────────────────
+
+model CurriculumGrade {
+  id          String              @id @default(cuid())
+  number      Int                 @unique // 1..12
+  stage       String // foundational | preparatory | middle | secondary | senior_secondary
+  displayName String
+  subjects    CurriculumSubject[]
+}
+
+model CurriculumSubject {
+  id         String              @id @default(cuid())
+  gradeId    String
+  grade      CurriculumGrade     @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  name       String
+  slug       String
+  icon       String? // lucide icon name
+  color      String? // tailwind gradient token
+  stream     String? // science | commerce | humanities (grades 11-12) | olympiad (grades 1-10 prep track)
+  orderIndex Int                 @default(0)
+  chapters   CurriculumChapter[]
+
+  @@unique([gradeId, slug])
+  @@index([gradeId])
+}
+
+model CurriculumChapter {
+  id           String            @id @default(cuid())
+  subjectId    String
+  subject      CurriculumSubject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  number       Int
+  title        String
+  slug         String
+  summary      String?           @db.Text
+  textbook     String? // e.g. "NCERT Curiosity (2024)"
+  contentCache Json? // generated lesson content, cached
+  outcomes     LearningOutcome[]
+  questions    Question[]
+  chunks       ContentChunk[]
+
+  @@unique([subjectId, slug])
+  @@index([subjectId])
+}
+
+/// A passage of the chapter's official NCERT text, parsed from the
+/// ncert.nic.in chapter PDF. This is the grounding corpus: lessons and
+/// questions cite these chunks. `embedding` stays null until an embedding
+/// provider key is configured (lexical ranking works without it).
+model ContentChunk {
+  id        String            @id @default(cuid())
+  chapterId String
+  chapter   CurriculumChapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  idx       Int // 0-based order within the chapter
+  language  String            @default("en") // en | hi | te — source-edition language
+  text      String            @db.Text
+  page      Int? // 1-based page in the source PDF, if known
+  sourceUrl String // the official PDF this was parsed from
+  embedding Json? // optional vector for semantic ranking (future)
+  createdAt DateTime          @default(now())
+
+  @@unique([chapterId, language, idx])
+  @@index([chapterId, language])
+}
+
+/// Decision telemetry: one row per notable agent decision (verification
+/// verdicts, regenerations, fallback cascades). Powers explainability —
+/// "why did the system accept/reject this content" is always answerable.
+model AgentEvent {
+  id        String   @id @default(cuid())
+  kind      String // e.g. "lesson_verified" | "lesson_blocked" | "question_verified" | "question_dropped"
+  chapterId String?
+  refId     String? // questionId or other subject of the event
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@index([kind, createdAt])
+  @@index([chapterId])
+}
+
+model LearningOutcome {
+  id          String            @id @default(cuid())
+  chapterId   String
+  chapter     CurriculumChapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  code        String // e.g. "SCI-610-01"
+  description String            @db.Text
+  conceptKey  String // BKT concept identifier, e.g. "g6.sci.ch1.living-vs-nonliving"
+  questions   Question[]
+
+  @@index([chapterId])
+  @@index([conceptKey])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Assessment: questions, attempts, rubric evaluation
+// ─────────────────────────────────────────────────────────────
+
+model Question {
+  id            String            @id @default(cuid())
+  chapterId     String
+  chapter       CurriculumChapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  outcomeId     String?
+  outcome       LearningOutcome?  @relation(fields: [outcomeId], references: [id], onDelete: SetNull)
+  type          String // mcq | fill_blank | match | assertion_reason | case_study | vsa_2 | sa_3 | la_5 | la_7 | numerical | olympiad_mcq | olympiad_reasoning | olympiad_hots
+  marks         Int
+  difficulty    String            @default("medium") // easy | medium | hard
+  prompt        String            @db.Text
+  options       Json? // MCQ options / match pairs / case-study sub-parts
+  correctAnswer String?           @db.Text // objective answer key
+  modelAnswer   String?           @db.Text // exemplar answer for subjective questions
+  rubric        Json? // [{criterion, marks, keywords?}]
+  source        String            @default("seed") // seed | generated
+  verification  Json? // adversarial verifier verdict: {verdict, issues, checkedBy, at}
+  // IRT 2-PL parameters, calibrated from attempts (null until enough data)
+  irtDifficulty     Float? // b
+  irtDiscrimination Float? // a
+  irtSampleSize     Int    @default(0) // attempts used in last calibration
+  createdAt     DateTime          @default(now())
+  attempts      QuestionAttempt[]
+
+  @@index([chapterId, type])
+  @@index([outcomeId])
+}
+
+model QuestionAttempt {
+  id           String         @id @default(cuid())
+  studentId    String
+  student      StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  questionId   String
+  question     Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answer       String         @db.Text
+  scoreAwarded Float
+  maxMarks     Int
+  feedback     Json? // structured evaluation: per-criterion breakdown, misconceptions, suggestions
+  evaluator    String         @default("auto") // auto | model id used for rubric grading
+  createdAt    DateTime       @default(now())
+
+  @@index([studentId, questionId])
+  @@index([questionId])
+}
+
+// BKT knowledge state per student per concept
+model ConceptMastery {
+  id              String         @id @default(cuid())
+  studentId       String
+  student         StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  conceptKey      String
+  pKnown          Float          @default(0.25)
+  attempts        Int            @default(0)
+  lastPracticedAt DateTime       @default(now())
+
+  @@unique([studentId, conceptKey])
+  @@index([studentId])
+  @@index([conceptKey])
+}
